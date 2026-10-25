@@ -27,81 +27,83 @@ def read_image(file) -> np.ndarray:
 
 
 def _hex(label: str) -> str:
+    if label == "neutral":
+        return "#8A90A0"  # abu-abu bawaan terlalu pucat di tema terang
     b, g, r = config.COLORS_BGR[label]
     return f"#{r:02x}{g:02x}{b:02x}"
 
 
+PRESETS = {"Longgar": 3, "Seimbang": 5, "Ketat": 8}
+
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
 html, body, [class*="css"], .stApp { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
-.stApp {
-    background:
-        radial-gradient(900px 420px at 85% -10%, rgba(255,181,71,.10), transparent 60%),
-        radial-gradient(700px 380px at 0% 0%, rgba(124,140,255,.08), transparent 60%),
-        #12141C;
-}
+.stApp { background: #E9EAEE; }
 #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDecoration"] { display: none !important; }
 header[data-testid="stHeader"] { background: transparent; }
-.block-container { padding-top: 2.2rem; padding-bottom: 4rem; max-width: 1180px; }
-
-/* Hero */
-.hero { padding: 1.2rem 0 1.6rem; }
-.hero h1 { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 800; letter-spacing: -.03em;
-           line-height: 1.08; margin: 0 0 .7rem; color: #F4F5FA; }
-.hero p { color: #9AA1B5; font-size: 1.05rem; max-width: 52ch; margin: 0 0 1rem; line-height: 1.6; }
-.chips { display: flex; flex-wrap: wrap; gap: .5rem; }
-.chip { font-size: .8rem; font-weight: 600; color: #C9CEDD; padding: .35rem .8rem;
-        border: 1px solid #2B3040; border-radius: 999px; background: #181B26; }
-
-/* Tabs */
-.stTabs [data-baseweb="tab-list"] { gap: .4rem; border-bottom: 1px solid #262B3A; }
-.stTabs [data-baseweb="tab"] { height: 46px; padding: 0 1.1rem; font-weight: 600; color: #9AA1B5;
-                               border-radius: 10px 10px 0 0; }
-.stTabs [aria-selected="true"] { color: #FFB547 !important; }
-.stTabs [data-baseweb="tab-highlight"] { background-color: #FFB547 !important; height: 3px; }
-
-/* Uploader */
-[data-testid="stFileUploader"] section {
-    border: 2px dashed #343A4F; border-radius: 18px; background: #161923; padding: 2rem 1.4rem;
-    transition: border-color .2s, background .2s; }
-[data-testid="stFileUploader"] section:hover { border-color: #FFB547; background: #1A1E2A; }
-[data-testid="stFileUploader"] button { border-radius: 10px; font-weight: 600; }
-
-/* Cards */
-[data-testid="stVerticalBlockBorderWrapper"] { border-radius: 18px !important;
-    border-color: #272C3B !important; background: #171A24; }
-[data-testid="stMetric"] { background: #171A24; border: 1px solid #272C3B; border-radius: 16px;
-                           padding: 1rem 1.2rem; }
-[data-testid="stMetricLabel"] p { color: #9AA1B5; font-weight: 600; }
-[data-testid="stMetricValue"] { font-weight: 800; letter-spacing: -.02em; }
-[data-testid="stImage"] img { border-radius: 14px; }
-[data-testid="stDataFrame"] { border-radius: 14px; overflow: hidden; }
-h2, h3 { letter-spacing: -.02em; font-weight: 700; }
+.block-container { padding-top: 2rem; padding-bottom: 4rem; max-width: 1100px; }
 
 /* Sidebar */
-[data-testid="stSidebar"] { background: #151823; border-right: 1px solid #232838; }
-.legend { display: flex; flex-direction: column; gap: .45rem; margin-top: .4rem; }
-.legend div { display: flex; align-items: center; gap: .6rem; font-size: .92rem; color: #D5D9E6; }
-.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+[data-testid="stSidebar"] { background: #E9EAEE; border-right: none; }
+[data-testid="stSidebar"] > div:first-child { padding: .6rem .4rem; }
+.brand { display: flex; align-items: center; gap: .7rem; background: #F4F5F8; border-radius: 16px;
+         padding: .8rem .9rem; box-shadow: 0 1px 2px rgba(20,24,40,.06); }
+.brand .logo { width: 36px; height: 36px; border-radius: 10px; background: #5B5BF0;
+               display: grid; place-items: center; font-size: 1.2rem; }
+.brand b { display: block; font-size: .98rem; font-weight: 800; letter-spacing: -.01em; }
+.brand span { font-size: .75rem; color: #6B7184; }
+.side-label { font-size: .78rem; color: #7A8094; font-weight: 600; margin: 1.1rem .3rem .4rem; }
 
-/* Hasil prediksi */
-.summary { display: flex; align-items: baseline; gap: .6rem; margin: .2rem 0 1rem; }
-.summary b { font-size: 2.4rem; font-weight: 800; color: #FFB547; letter-spacing: -.03em; }
-.summary span { color: #9AA1B5; font-weight: 500; }
-.verdict { display: flex; align-items: center; gap: .8rem; margin-bottom: .2rem; }
-.verdict .emo { font-size: 2.6rem; line-height: 1; }
-.verdict .name { font-size: 1.7rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
-.verdict .conf { color: #9AA1B5; font-size: .9rem; font-weight: 500; }
-.bars { display: flex; flex-direction: column; gap: .5rem; margin-top: .9rem; }
-.bar { display: grid; grid-template-columns: 5.2rem 1fr 3.2rem; align-items: center; gap: .7rem;
-       font-size: .85rem; color: #9AA1B5; }
-.bar.top { color: #F4F5FA; font-weight: 700; }
-.track { height: 8px; background: #232838; border-radius: 99px; overflow: hidden; }
+.st-key-nav [role="radiogroup"] { gap: .25rem; }
+.st-key-nav label { width: 100%; padding: .6rem .8rem; border-radius: 12px; cursor: pointer;
+                    transition: background .15s; }
+.st-key-nav label > div:first-child { display: none; }
+.st-key-nav label:hover { background: rgba(255,255,255,.6); }
+.st-key-nav label:has(input:checked) { background: #fff; box-shadow: 0 1px 3px rgba(20,24,40,.10); }
+.st-key-nav label p { font-weight: 600; color: #3A3F52; }
+.st-key-nav label:has(input:checked) p { color: #5B5BF0; }
+
+.side-card { background: #F4F5F8; border-radius: 16px; padding: .9rem 1rem;
+             box-shadow: 0 1px 2px rgba(20,24,40,.06); font-size: .85rem; color: #4A5064; line-height: 1.6; }
+.legend { display: flex; flex-wrap: wrap; gap: .4rem .5rem; }
+.legend span { display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; color: #3A3F52; }
+.dot { width: 9px; height: 9px; border-radius: 50%; }
+
+/* Main */
+.page-title { font-size: 1.7rem; font-weight: 800; letter-spacing: -.02em; margin: 0; color: #1B1D26; }
+.page-sub { color: #6B7184; margin: .3rem 0 1.4rem; font-size: .98rem; }
+
+[data-testid="stFileUploader"] section { border: 2px dashed #C3C7D3; border-radius: 20px; background: #F4F5F8;
+    padding: 2.4rem 1.4rem; box-shadow: 0 6px 24px rgba(20,24,40,.06); transition: border-color .2s; }
+[data-testid="stFileUploader"] section:hover { border-color: #5B5BF0; }
+[data-testid="stFileUploader"] button { border-radius: 10px; font-weight: 600; }
+
+.pill { display: inline-block; background: #fff; border-radius: 10px; padding: .3rem .8rem; font-size: .8rem;
+        font-weight: 600; color: #3A3F52; box-shadow: 0 1px 3px rgba(20,24,40,.10); margin-bottom: .6rem; }
+[data-testid="stImage"] img { border-radius: 16px; }
+
+[data-testid="stVerticalBlockBorderWrapper"] { border-radius: 18px !important; border: none !important;
+    background: #F4F5F8; box-shadow: 0 1px 3px rgba(20,24,40,.08); }
+[data-testid="stMetric"] { background: #F4F5F8; border-radius: 16px; padding: 1rem 1.2rem;
+    box-shadow: 0 1px 3px rgba(20,24,40,.08); }
+[data-testid="stMetricLabel"] p { color: #6B7184; font-weight: 600; }
+[data-testid="stMetricValue"] { font-weight: 800; letter-spacing: -.02em; }
+h2, h3 { letter-spacing: -.02em; font-weight: 700; }
+
+.verdict { display: flex; align-items: center; gap: .8rem; }
+.emo { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 1.9rem; }
+.verdict .name { font-size: 1.35rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; color: #1B1D26; }
+.verdict .conf { color: #6B7184; font-size: .85rem; }
+.bars { display: flex; flex-direction: column; gap: .45rem; margin-top: .9rem; }
+.bar { display: grid; grid-template-columns: 4.6rem 1fr 2.8rem; align-items: center; gap: .6rem;
+       font-size: .82rem; color: #7A8094; }
+.bar.top { color: #1B1D26; font-weight: 700; }
+.track { height: 7px; background: #DDE0E8; border-radius: 99px; overflow: hidden; }
 .fill { height: 100%; border-radius: 99px; }
 .bar .pct { text-align: right; font-variant-numeric: tabular-nums; }
-.empty { text-align: center; color: #7F8699; padding: 1.4rem .5rem 0; font-size: .92rem; }
+.count { color: #6B7184; font-weight: 600; margin: 1.4rem 0 .6rem; }
+.count b { color: #1B1D26; font-size: 1.1rem; }
 </style>
 """
 
@@ -113,17 +115,23 @@ def inject_css():
 def render_bars(probs: dict, top: str) -> str:
     rows = []
     for k, v in sorted(probs.items(), key=lambda kv: -kv[1]):
-        color = _hex(k) if k == top else "#4A5168"
+        color = _hex(k) if k == top else "#AEB3C2"
         rows.append(
-            f'<div class="bar{" top" if k == top else ""}">'
-            f'<span>{config.LABELS_ID[k]}</span>'
+            f'<div class="bar{" top" if k == top else ""}"><span>{config.LABELS_ID[k]}</span>'
             f'<div class="track"><div class="fill" style="width:{v*100:.1f}%;background:{color}"></div></div>'
             f'<span class="pct">{v:.0%}</span></div>')
     return f'<div class="bars">{"".join(rows)}</div>'
 
 
-# ------------------------------------------------------------------ tab 1
+def page_header(title: str, sub: str):
+    st.markdown(f'<h1 class="page-title">{title}</h1><p class="page-sub">{sub}</p>',
+                unsafe_allow_html=True)
+
+
+# ------------------------------------------------------------------ halaman prediksi
 def prediction_tab(min_neighbors: int):
+    page_header("Prediksi ekspresi",
+                "Unggah foto, wajah dideteksi otomatis lalu diklasifikasi ke 7 ekspresi.")
     if not config.MODEL_PATH.exists():
         st.error("Model belum ditemukan. Latih dulu dengan "
                  "`python -m src.training.train`.")
@@ -132,8 +140,6 @@ def prediction_tab(min_neighbors: int):
     file = st.file_uploader("Unggah foto wajah", type=["jpg", "jpeg", "png"],
                             label_visibility="collapsed")
     if file is None:
-        st.markdown('<div class="empty">Seret foto ke kotak di atas. Wajah dideteksi '
-                    'otomatis, tidak perlu di-crop.</div>', unsafe_allow_html=True)
         return
 
     image = read_image(file)
@@ -141,27 +147,33 @@ def prediction_tab(min_neighbors: int):
         annotated, results = get_predictor().predict_image(image, min_neighbors)
 
     st.write("")
-    left, right = st.columns([3, 2], gap="large")
-    with left:
-        st.image(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB), use_container_width=True)
-    with right:
-        if not results:
-            st.warning("Tidak ada wajah terdeteksi. Coba foto yang lebih jelas "
-                       "atau turunkan nilai Min neighbors.")
-            return
-        st.markdown(f'<div class="summary"><b>{len(results)}</b>'
-                    f'<span>wajah terdeteksi</span></div>', unsafe_allow_html=True)
-        for i, r in enumerate(results, 1):
-            with st.container(border=True):
-                c1, c2 = st.columns([1, 2], gap="medium")
-                c1.image(r.face_rgb, use_container_width=True)
-                c2.markdown(
-                    f'<div class="verdict"><span class="emo">{config.EMOJI[r.label]}</span>'
-                    f'<div><div class="name" style="color:{_hex(r.label)}">'
-                    f'{config.LABELS_ID[r.label]}</div>'
-                    f'<div class="conf">Wajah {i} &bull; yakin {r.confidence:.1%}</div></div></div>',
-                    unsafe_allow_html=True)
-                st.markdown(render_bars(r.probabilities, r.label), unsafe_allow_html=True)
+    a, b = st.columns(2, gap="medium")
+    with a:
+        st.markdown('<span class="pill">Foto asli</span>', unsafe_allow_html=True)
+        st.image(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), width="stretch")
+    with b:
+        st.markdown('<span class="pill">Hasil deteksi</span>', unsafe_allow_html=True)
+        st.image(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB), width="stretch")
+
+    if not results:
+        st.warning("Tidak ada wajah terdeteksi. Coba foto yang lebih jelas "
+                   "atau ubah pengaturan deteksi ke Longgar.")
+        return
+
+    st.markdown(f'<div class="count"><b>{len(results)}</b> wajah terdeteksi</div>',
+                unsafe_allow_html=True)
+    cols = st.columns(min(len(results), 2), gap="medium")
+    for i, r in enumerate(results, 1):
+        with cols[(i - 1) % len(cols)].container(border=True):
+            c1, c2 = st.columns([1, 2], gap="medium")
+            c1.image(r.face_rgb, width="stretch")
+            c2.markdown(
+                f'<div class="verdict"><div class="emo" style="background:{_hex(r.label)}33">'
+                f'{config.EMOJI[r.label]}</div><div>'
+                f'<div class="name">{config.LABELS_ID[r.label]}</div>'
+                f'<div class="conf">Wajah {i} &bull; yakin {r.confidence:.1%}</div></div></div>',
+                unsafe_allow_html=True)
+            st.markdown(render_bars(r.probabilities, r.label), unsafe_allow_html=True)
 
 
 # ------------------------------------------------------------------ tab 2
@@ -185,29 +197,29 @@ def evaluation_tab():
     if table_path.exists():
         df = pd.read_csv(table_path, index_col=0)
         left, right = st.columns([3, 2], gap="large")
-        left.dataframe(df.round(3), use_container_width=True)
-        right.bar_chart(df.loc[NAMES_ID, "f1-score"], height=300, color="#FFB547")
+        left.dataframe(df.round(3), width="stretch")
+        right.bar_chart(df.loc[NAMES_ID, "f1-score"], height=300, color="#5B5BF0")
 
     st.subheader("Confusion matrix")
     cm_img = config.REPORTS_DIR / "confusion_matrix.png"
     if cm_img.exists():
-        st.image(str(cm_img), use_container_width=True)
+        st.image(str(cm_img), width="stretch")
 
     st.subheader("Ekspresi yang paling sering tertukar")
     pairs_path = config.REPORTS_DIR / "confused_pairs.csv"
     if pairs_path.exists():
-        st.dataframe(pd.read_csv(pairs_path).head(10), use_container_width=True,
+        st.dataframe(pd.read_csv(pairs_path).head(10), width="stretch",
                      hide_index=True)
 
     st.subheader("Kurva training")
     hist_img = config.REPORTS_DIR / "training_history.png"
     if hist_img.exists():
-        st.image(str(hist_img), use_container_width=True)
+        st.image(str(hist_img), width="stretch")
 
     st.subheader("Tantangan FER2013: label noise & kualitas rendah")
     err_img = config.REPORTS_DIR / "confident_errors.png"
     if err_img.exists():
-        st.image(str(err_img), use_container_width=True)
+        st.image(str(err_img), width="stretch")
     st.caption("Banyak error berkeyakinan tinggi sebenarnya berasal dari label "
                "yang ambigu atau keliru pada dataset, bukan murni kesalahan model. "
                "Gambar FER2013 hanya 48×48 piksel grayscale.")
@@ -217,32 +229,30 @@ def evaluation_tab():
 def main():
     inject_css()
 
-    st.markdown(
-        '<div class="hero"><h1>Baca ekspresi wajah dari sebuah foto</h1>'
-        '<p>Unggah foto, lalu model mengenali satu dari tujuh ekspresi dasar '
-        'beserta tingkat keyakinannya.</p>'
-        '<div class="chips"><span class="chip">VGG16 Transfer Learning</span>'
-        '<span class="chip">FER2013</span><span class="chip">Haar Cascade</span>'
-        '<span class="chip">7 ekspresi</span></div></div>',
-        unsafe_allow_html=True)
-
     with st.sidebar:
-        st.subheader("Pengaturan deteksi")
-        min_neighbors = st.slider(
-            "Min neighbors", 3, 10, 5,
-            help="Lebih tinggi = lebih ketat (lebih sedikit salah deteksi).")
-        st.markdown("**Ekspresi yang dikenali**")
-        st.markdown(
-            '<div class="legend">' + "".join(
-                f'<div><span class="dot" style="background:{_hex(c)}"></span>'
-                f'{config.EMOJI[c]} {config.LABELS_ID[c]}</div>'
-                for c in config.CLASS_NAMES) + '</div>',
-            unsafe_allow_html=True)
+        st.markdown('<div class="brand"><div class="logo">😊</div><div><b>Klasifikasi Ekspresi</b>'
+                    '<span>VGG16 &bull; FER2013</span></div></div>', unsafe_allow_html=True)
 
-    tab_pred, tab_eval = st.tabs(["Prediksi", "Evaluasi model"])
-    with tab_pred:
-        prediction_tab(min_neighbors)
-    with tab_eval:
+        st.markdown('<div class="side-label">Menu</div>', unsafe_allow_html=True)
+        with st.container(key="nav"):
+            page = st.radio("Menu", ["Prediksi", "Evaluasi model"],
+                            label_visibility="collapsed")
+
+        st.markdown('<div class="side-label">Ketelitian deteksi wajah</div>', unsafe_allow_html=True)
+        preset = st.select_slider(
+            "Ketelitian", options=list(PRESETS), value="Seimbang",
+            label_visibility="collapsed",
+            help="Ketat = lebih sedikit salah deteksi, tapi wajah kecil bisa terlewat.")
+
+        st.markdown('<div class="side-label">Ekspresi yang dikenali</div>', unsafe_allow_html=True)
+        st.markdown('<div class="side-card"><div class="legend">' + "".join(
+            f'<span><i class="dot" style="background:{_hex(c)}"></i>{config.LABELS_ID[c]}</span>'
+            for c in config.CLASS_NAMES) + '</div></div>', unsafe_allow_html=True)
+
+    if page == "Prediksi":
+        prediction_tab(PRESETS[preset])
+    else:
+        page_header("Evaluasi model", "Performa model pada data uji FER2013.")
         evaluation_tab()
 
 
