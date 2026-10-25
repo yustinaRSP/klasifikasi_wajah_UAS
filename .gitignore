@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+# dataset terlalu besar untuk GitHub (hanya folder data di root)
+/data/
+*.zip
+/export/
