@@ -1,8 +1,5 @@
-tensorflow>=2.16
-opencv-python-headless>=4.9
-streamlit>=1.35
+streamlit
+tensorflow
+opencv-python-headless==4.10.0.84
 numpy
-pandas
-pillow
-scikit-learn
-matplotlib
+h5py
