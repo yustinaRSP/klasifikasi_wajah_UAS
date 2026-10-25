@@ -42,3 +42,6 @@ hanya pada foto yang diupload pengguna (di dataset yang sangat kecil Haar justru
 3. Unduh `hasil_training.zip`, ekstrak, tempatkan `models/fer_vgg16.keras` dan `reports/` ke proyek lokal.
 4. Tes lokal: `streamlit run app.py`.
 5. Upload ke GitHub (dataset dan `.venv` otomatis diabaikan oleh `.gitignore`), lalu deploy.
+=======
+# klasifikasi_wajah_UAS
+
