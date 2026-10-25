@@ -1,5 +1,6 @@
 """Presentation layer: UI Streamlit. Jalankan:  streamlit run app.py"""
 import json
+import os
 
 import cv2
 import numpy as np
@@ -82,6 +83,8 @@ header[data-testid="stHeader"] { background: transparent; }
 .pill { display: inline-block; background: #fff; border-radius: 10px; padding: .3rem .8rem; font-size: .8rem;
         font-weight: 600; color: #3A3F52; box-shadow: 0 1px 3px rgba(20,24,40,.10); margin-bottom: .6rem; }
 [data-testid="stImage"] img { border-radius: 16px; }
+[data-testid="stCameraInput"] > div { border-radius: 20px; overflow: hidden; }
+[data-testid="stCameraInput"] button { border-radius: 10px; font-weight: 600; }
 
 [data-testid="stVerticalBlockBorderWrapper"] { border-radius: 18px !important; border: none !important;
     background: #F4F5F8; box-shadow: 0 1px 3px rgba(20,24,40,.08); }
@@ -137,8 +140,13 @@ def prediction_tab(min_neighbors: int):
                  "`python -m src.training.train`.")
         return
 
-    file = st.file_uploader("Unggah foto wajah", type=["jpg", "jpeg", "png"],
-                            label_visibility="collapsed")
+    tab_up, tab_cam = st.tabs(["Unggah foto", "Ambil dari kamera"])
+    with tab_up:
+        uploaded = st.file_uploader("Unggah foto wajah", type=["jpg", "jpeg", "png"],
+                                    label_visibility="collapsed")
+    with tab_cam:
+        snapshot = st.camera_input("Ambil foto wajah", label_visibility="collapsed")
+    file = snapshot or uploaded
     if file is None:
         return
 
@@ -174,6 +182,56 @@ def prediction_tab(min_neighbors: int):
                 f'<div class="conf">Wajah {i} &bull; yakin {r.confidence:.1%}</div></div></div>',
                 unsafe_allow_html=True)
             st.markdown(render_bars(r.probabilities, r.label), unsafe_allow_html=True)
+
+
+# ------------------------------------------------------------------ halaman kamera langsung
+def live_tab(min_neighbors: int):
+    page_header("Kamera langsung",
+                "Ekspresi dikenali terus-menerus dari kamera laptop.")
+    if not config.MODEL_PATH.exists():
+        st.error("Model belum ditemukan. Latih dulu dengan "
+                 "`python -m src.training.train`.")
+        return
+
+    on = st.toggle("Nyalakan kamera")
+    left, right = st.columns([3, 2], gap="large")
+    frame_slot = left.empty()
+    info_slot = right.empty()
+    if not on:
+        frame_slot.info("Nyalakan kamera untuk mulai. Matikan lagi untuk berhenti.")
+        return
+
+    backend = cv2.CAP_DSHOW if os.name == "nt" else cv2.CAP_ANY
+    cap = cv2.VideoCapture(0, backend)
+    if not cap.isOpened():
+        st.error("Kamera tidak bisa dibuka. Tutup aplikasi lain yang memakai kamera, "
+                 "lalu coba lagi.")
+        return
+
+    predictor = get_predictor()
+    try:
+        while True:  # berhenti otomatis saat toggle dimatikan (Streamlit rerun)
+            ok, frame = cap.read()
+            if not ok:
+                st.error("Gagal membaca gambar dari kamera.")
+                break
+            frame = cv2.flip(frame, 1)  # cermin, supaya terasa natural
+            annotated, results = predictor.predict_image(frame, min_neighbors)
+            frame_slot.image(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB), width="stretch")
+            if results:
+                r = results[0]  # wajah terbesar
+                info_slot.markdown(
+                    f'<div class="side-card"><div class="verdict">'
+                    f'<div class="emo" style="background:{_hex(r.label)}33">{config.EMOJI[r.label]}</div>'
+                    f'<div><div class="name">{config.LABELS_ID[r.label]}</div>'
+                    f'<div class="conf">yakin {r.confidence:.0%}</div></div></div>'
+                    f'{render_bars(r.probabilities, r.label)}</div>',
+                    unsafe_allow_html=True)
+            else:
+                info_slot.markdown('<div class="side-card">Wajah belum terdeteksi. '
+                                   'Hadapkan wajah ke kamera.</div>', unsafe_allow_html=True)
+    finally:
+        cap.release()
 
 
 # ------------------------------------------------------------------ tab 2
@@ -235,7 +293,7 @@ def main():
 
         st.markdown('<div class="side-label">Menu</div>', unsafe_allow_html=True)
         with st.container(key="nav"):
-            page = st.radio("Menu", ["Prediksi", "Evaluasi model"],
+            page = st.radio("Menu", ["Prediksi", "Kamera langsung", "Evaluasi model"],
                             label_visibility="collapsed")
 
         st.markdown('<div class="side-label">Ketelitian deteksi wajah</div>', unsafe_allow_html=True)
@@ -251,6 +309,8 @@ def main():
 
     if page == "Prediksi":
         prediction_tab(PRESETS[preset])
+    elif page == "Kamera langsung":
+        live_tab(PRESETS[preset])
     else:
         page_header("Evaluasi model", "Performa model pada data uji FER2013.")
         evaluation_tab()
